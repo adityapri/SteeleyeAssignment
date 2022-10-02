@@ -1,0 +1,150 @@
+#Explain what the simple List component does.
+
+List component is the memoized component which renders the list of items
+that is being passed as props.It uses SingleListItem Component for each item to
+be displayed on the UI.Through memo(an optimization technique), we achieve performance boost efficiently.
+It can be observed that handleClick event function has been passed as props to
+SingleListItem which is responsible to change the backgroundColor of selected item
+being displayed.
+
+#What problems / warnings are there with code?
+
+Single List Item 
+1. Arrow function should be used for event handling.
+   warning code snippet : onClick={onClickHandler(index)}
+   This causes automatic call to onClickHandler upon rendering the component and further
+   updation isn't possible.
+
+2. Warning : Failed prop type;prop type `isSelected` is invalid; 
+   code snippet : style={{ backgroundColor: isSelected ? "green" : "red" }}
+   It can be observed that selectedIndex state in Parent component isn't initialized
+   and 'isSelected' is undefined;We should change the type to number and do comparison with list index to identify which item has been selected. 
+
+List Component
+
+1. Type Error
+  a) shapeOf() is not a function.
+  b) arrayOf() should be used instead of array()
+
+2. const [setSelectedIndex, selectedIndex] = useState();
+   => setSelectedIndex is not recognized as setter function.We must interchange them.
+   
+3. In case, 'items' remain null/undefined, TypeError
+   Cannot read properties of undefined (reading 'map') is encountered.
+   Either we should initialize the items in defaultProps or conditional
+   check can be done.
+   e.g.
+   {items && item.map(()=>{})} ; This prevents the above mentioned error.
+
+   It's advisable to provide some defined initial Value to 'items'
+
+4. Warning: Each child in a list should have a unique "key" prop.
+   Providing unique key as prop makes items distinguisable and hence
+   React recognises them as distinct item.
+
+#Please fix, optimize, and/or modify the component as much as you think is necessary.
+
+
+import React, { useState, useEffect, memo } from "react";
+import PropTypes from "prop-types";
+
+// Single List Item
+const WrappedSingleListItem = ({
+  index,
+  isSelected,
+  onClickHandler,
+  text
+}) => {
+  console.log("Child : Single List");
+
+  return (
+    <li
+      style={{ backgroundColor: index===isSelected ? "green" : "red" }}
+      // onClick={onClickHandler(index)}
+      // arrow function instead of function call
+      onClick={() => onClickHandler(index)}
+    >
+      {text}
+    </li>
+  );
+};
+
+WrappedSingleListItem.propTypes = {
+  index: PropTypes.number,
+// isSelected: PropTypes.bool,
+  isSelected: PropTypes.number,
+  onClickHandler: PropTypes.func.isRequired,
+  text: PropTypes.string.isRequired
+};
+
+const SingleListItem = memo(WrappedSingleListItem);
+
+// List Component
+const WrappedListComponent = ({items}) => {
+  // const [setSelectedIndex, selectedIndex] = useState()
+  const [selectedIndex, setSelectedIndex] = useState();
+
+
+  useEffect(() => {
+    setSelectedIndex(null);
+  }, [items]);
+
+  const handleClick =(index) => {
+    setSelectedIndex(index);
+  };
+
+  
+
+  console.log("Parent : List Component Rendered");
+
+  return (
+    <>
+      
+      <ul style={{ textAlign: "left" }}>
+        {/* {
+          items.map((item, index) => (
+            <SingleListItem
+              onClickHandler={() => handleClick(index)}
+              text={item.text}
+              index={index}
+              isSelected={selectedIndex}
+            />
+          ))
+        } */}
+        { items && 
+          items.map((item, index) => (
+            <SingleListItem
+            //key as prop
+              key={index}
+              onClickHandler={handleClick}
+              text={item.text}
+              index={index}
+              isSelected={selectedIndex}
+            />
+          ))}
+      </ul>
+    </>
+  );
+};
+
+// WrappedListComponent.propTypes = {
+//     items: PropTypes.array(PropTypes.shapeOf({
+//         text: PropTypes.string.isRequired,
+//     })),
+// };
+
+WrappedListComponent.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      text: PropTypes.string.isRequired
+    }).isRequired
+  )
+};
+
+WrappedListComponent.defaultProps = {
+  items: null
+};
+
+const List = memo(WrappedListComponent);
+
+export default List;
